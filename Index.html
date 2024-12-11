@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wetterabfrage</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: Arial, sans-serif;
+      }
+
+      .mainBackground,
+      .mainBackgroundCold {
+        background-image: url("zeigen-euch-besten-wetter-apps-android-ios-234566.webp");
+        background-size: cover;
+        background-position: center;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .mainBackgroundCold {
+        background-image: url("winter-frost-wetter-oberharz-100~3840x2160.jpeg");
+      }
+
+      .container {
+        width: 90%;
+        max-width: 550px;
+        background-color: rgba(26, 34, 41, 0.85);
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.5);
+      }
+      .form-control {
+        border-radius: 5px;
+      }
+      .weather-icon {
+        width: 80px;
+        height: 80px;
+      }
+      .weather-card {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 20px;
+        box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
+        color: aliceblue;
+      }
+      .weather-detail {
+        font-size: 1rem;
+        margin: 5px 0;
+        color: aliceblue;
+      }
+      .favorites-container {
+        margin-top: 20px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
+        color: white;
+      }
+      .favorite-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .favorite-details {
+        margin-top: 10px;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        padding: 10px;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="background" class="mainBackground">
+      <div class="container text-center">
+        <h1>Wetterabfrage</h1>
+        <div class="input-group my-4">
+          <input
+            type="text"
+            class="form-control"
+            id="city-input"
+            placeholder="Stadt eingeben"
+            onkeydown="handleEnter(event)"
+          />
+          <div class="input-group-append">
+            <button class="btn btn-primary" onclick="fetchWeather()">
+              Suchen
+            </button>
+          </div>
+        </div>
+        <div id="weather-output"></div>
+        <div class="favorites-container" id="favorites-container">
+          <h4>Favorisierte Städte</h4>
+          <div id="favorites-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const favorites = new Map();
+
+      function handleEnter(event) {
+        if (event.key === 'Enter') {
+          fetchWeather();
+        }
+      }
+
+      function formatTime(timestamp) {
+        const date = new Date(timestamp * 1000);
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
+      }
+
+      function fetchWeather() {
+        const city = document.getElementById('city-input').value;
+        const apiKey = 'bab281d79e5f1e9755a68d754cc313e7';
+        const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=de`;
+
+        fetch(apiUrl)
+          .then(response => response.json())
+          .then(data => {
+            displayWeather(data);
+          })
+          .catch(error => {
+            document.getElementById('weather-output').innerHTML = `<div class="alert alert-danger">Fehler beim Abrufen der Daten</div>`;
+          });
+      }
+
+      function displayWeather(data) {
+        const weatherOutput = document.getElementById('weather-output');
+        if (data && data.weather && data.main && data.sys) {
+          const iconUrl = `http://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+          const sunrise = formatTime(data.sys.sunrise);
+          const sunset = formatTime(data.sys.sunset);
+
+          weatherOutput.innerHTML = `
+            <div class="weather-card text-center">
+              <img src="${iconUrl}" alt="Wetter Icon" class="weather-icon">
+              <h3>${data.name} <button onclick="toggleFavorite('${data.name}', ${data.main.temp}, '${data.weather[0].description}', '${iconUrl}')" class="btn btn-sm btn-warning">⭐</button></h3>
+              <h4>${data.main.temp} °C</h4>
+              <p>${data.weather[0].description}</p>
+              <div class="row mt-4">
+                <div class="col-6 text-left">
+                  <div class="weather-detail">🌡️ Min: ${data.main.temp_min} °C</div>
+                  <div class="weather-detail">🌡️ Max: ${data.main.temp_max} °C</div>
+                  <div class="weather-detail">💨 Wind: ${data.wind.speed} m/s</div>
+                  <div class="weather-detail">💧 Feuchtigkeit: ${data.main.humidity} %</div>
+                </div>
+                <div class="col-6 text-right">
+                  <div class="weather-detail">🌅 Sonnenaufgang: ${sunrise}</div>
+                  <div class="weather-detail">🌇 Sonnenuntergang: ${sunset}</div>
+                </div>
+              </div>
+            </div>
+          `;
+          const backElem = document.getElementById('background');
+          if (data.main.temp_min < 10) {
+            backElem.className = 'mainBackgroundCold';
+          } else {
+            backElem.className = 'mainBackground';
+          }
+        } else {
+          weatherOutput.innerHTML = `<div class="alert alert-warning">Stadt nicht gefunden</div>`;
+        }
+      }
+
+      function toggleFavorite(city, temp, description, iconUrl) {
+        if (favorites.has(city)) {
+          favorites.delete(city);
+        } else {
+          favorites.set(city, { temp, description, iconUrl });
+        }
+        updateFavorites();
+      }
+
+      function updateFavorites() {
+        const favoritesList = document.getElementById('favorites-list');
+        favoritesList.innerHTML = '';
+
+        if (favorites.size === 0) {
+          favoritesList.innerHTML = '<p>Keine favorisierten Städte.</p>';
+          return;
+        }
+
+        favorites.forEach((details, city) => {
+          const cityElement = document.createElement('div');
+          cityElement.className = 'favorite-item';
+          cityElement.innerHTML = `
+            <div>
+              <h5>${city}</h5>
+              <div class="favorite-details">
+                <img src="${details.iconUrl}" alt="Icon" class="weather-icon">
+                <p>${details.temp} °C, ${details.description}</p>
+              </div>
+            </div>
+            <button class="btn btn-sm btn-danger" onclick="toggleFavorite('${city}')">Entfernen</button>
+          `;
+          favoritesList.appendChild(cityElement);
+        });
+      }
+
+      updateFavorites();
+    </script>
+  </body>
+</html>
